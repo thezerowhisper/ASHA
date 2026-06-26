@@ -1,0 +1,97 @@
+// shared.js — small helpers reused across pages
+
+async function api(path, options = {}) {
+  const res = await fetch(`/api/${path}`, {
+    method: options.method || "GET",
+    headers: { "Content-Type": "application/json" },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = "/index.html";
+      return;
+    }
+    throw new Error(data.error || "Something went wrong");
+  }
+  return data;
+}
+
+function showToast(msg) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function showError(formEl, message) {
+  let el = formEl.querySelector(".error-msg");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "error-msg";
+    formEl.appendChild(el);
+  }
+  el.textContent = message;
+  el.classList.add("show");
+}
+
+function clearError(formEl) {
+  const el = formEl.querySelector(".error-msg");
+  if (el) el.classList.remove("show");
+}
+
+function ageLabel(years) {
+  if (years < 1 / 12) return `${Math.round(years * 365)} days`;
+  if (years < 1) return `${Math.round(years * 12)} months`;
+  return `${years.toFixed(1)} yrs`;
+}
+
+function fmtDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function renderTabbar(active) {
+  const tabs = [
+    { href: "/dashboard.html", icon: "🏠", label: "Home", key: "dashboard" },
+    { href: "/entry.html", icon: "➕", label: "New entry", key: "entry" },
+    { href: "/children.html", icon: "👶", label: "Children", key: "children" },
+    { href: "/pregnancies.html", icon: "🩺", label: "High-risk", key: "pregnancies" },
+    { href: "/couples.html", icon: "💍", label: "Couples", key: "couples" },
+  ];
+  const nav = document.createElement("nav");
+  nav.className = "tabbar";
+  nav.innerHTML = tabs
+    .map(
+      (t) =>
+        `<a href="${t.href}" class="${t.key === active ? "active" : ""}"><span class="icon">${t.icon}</span>${t.label}</a>`
+    )
+    .join("");
+  document.body.appendChild(nav);
+}
+
+async function requireSession() {
+  try {
+    const me = await api("me");
+    if (!me) {
+      window.location.href = "/index.html";
+      return null;
+    }
+    return me;
+  } catch {
+    window.location.href = "/index.html";
+    return null;
+  }
+}
+
+async function logout() {
+  await api("logout", { method: "POST" });
+  window.location.href = "/index.html";
+}
