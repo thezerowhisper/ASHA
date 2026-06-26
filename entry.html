@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Children register — ASHA Register</title>
+<link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">Children register</div>
+  <button class="link" onclick="logout()">Log out</button>
+</header>
+
+<main>
+  <div class="filter-bar">
+    <button data-age="1" class="active">0–1 yr</button>
+    <button data-age="5">0–5 yr</button>
+  </div>
+  <input id="search" placeholder="Search by name or mother's name…" style="margin-bottom: 14px;" />
+  <div id="list"></div>
+</main>
+
+<script src="/js/shared.js"></script>
+<script>
+  let all = [];
+  let maxAge = 1;
+
+  async function load() {
+    all = await api(`children?max_age=${maxAge}`);
+    render();
+  }
+
+  function render() {
+    const q = document.getElementById("search").value.trim().toLowerCase();
+    const filtered = q
+      ? all.filter((c) => (c.name || "").toLowerCase().includes(q) || (c.mother_name || "").toLowerCase().includes(q))
+      : all;
+
+    const list = document.getElementById("list");
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state">No children found in this age group yet.<br>Use "New entry" to register a birth.</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered
+      .map((c) => {
+        const overdue = !c.last_visit || daysSince(c.last_visit) > 30;
+        return `
+        <div class="reg-row">
+          <div class="row-top">
+            <span class="name">${c.name || "Unnamed baby"}</span>
+            <span class="tag ${overdue ? "amber" : "ok"}">${ageLabel(c.age_years)}</span>
+          </div>
+          <div class="meta">Mother: ${c.mother_name || "—"} · ${c.village || "no village"} · ${c.gender || ""}</div>
+          <div class="meta">Last visit: ${c.last_visit ? fmtDate(c.last_visit) : "No visits recorded yet"} (${c.visit_count} total)</div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function daysSince(dateStr) {
+    return (Date.now() - new Date(dateStr).getTime()) / 86400000;
+  }
+
+  document.querySelectorAll(".filter-bar button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-bar button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      maxAge = Number(btn.dataset.age);
+      load();
+    });
+  });
+
+  document.getElementById("search").addEventListener("input", render);
+
+  (async () => {
+    const me = await requireSession();
+    if (!me) return;
+    await load();
+    renderTabbar("children");
+  })();
+</script>
+</body>
+</html>
