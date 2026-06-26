@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Dashboard — ASHA Register</title>
+<link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">ASHA Register<span class="sub" id="worker-name">Loading…</span></div>
+  <button class="link" onclick="logout()">Log out</button>
+</header>
+
+<main>
+  <h2>Today's overview</h2>
+  <div class="stat-grid" id="stats">
+    <div class="stat-card"><div class="num">—</div><div class="lbl">Active pregnancies</div></div>
+    <div class="stat-card"><div class="num warn">—</div><div class="lbl">High-risk pregnancies</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="lbl">Infants 0–1 yr</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="lbl">Children 0–5 yr</div></div>
+    <div class="stat-card"><div class="num warn">—</div><div class="lbl">Couples on no FP method</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="lbl">Births this month</div></div>
+  </div>
+
+  <div class="card" style="margin-top: 18px;">
+    <h3>Quick actions</h3>
+    <a href="/entry.html"><button class="primary" style="margin-top:8px;">+ New daily/weekly entry</button></a>
+    <a href="/pregnancies.html?high_risk=1"><button class="secondary">View high-risk pregnancies</button></a>
+    <a href="/couples.html?fp_method=none"><button class="secondary">View couples needing FP counselling</button></a>
+  </div>
+</main>
+
+<script src="/js/shared.js"></script>
+<script>
+  (async () => {
+    const me = await requireSession();
+    if (!me) return;
+    document.getElementById("worker-name").textContent = me.name;
+
+    const stats = await api("dashboard");
+    const cards = document.querySelectorAll("#stats .stat-card");
+    const values = [
+      stats.active_pregnancies,
+      stats.high_risk_pregnancies,
+      stats.infants_0_1,
+      stats.children_0_5,
+      stats.couples_no_method,
+      stats.births_this_month,
+    ];
+    cards.forEach((card, i) => {
+      card.querySelector(".num").textContent = values[i];
+    });
+
+    renderTabbar("dashboard");
+  })();
+</script>
+</body>
+</html>

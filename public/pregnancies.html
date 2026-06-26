@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Pregnancy register — ASHA Register</title>
+<link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+<header class="app-header">
+  <div class="brand">Pregnancy register</div>
+  <button class="link" onclick="logout()">Log out</button>
+</header>
+
+<main>
+  <div class="filter-bar">
+    <button data-filter="all" class="active">All active</button>
+    <button data-filter="high_risk">High-risk only</button>
+  </div>
+  <input id="search" placeholder="Search by name…" style="margin-bottom: 14px;" />
+  <div id="list"></div>
+</main>
+
+<script src="/js/shared.js"></script>
+<script>
+  let all = [];
+  let filterMode = "all";
+
+  async function load() {
+    const params = filterMode === "high_risk" ? "status=active&high_risk=1" : "status=active";
+    all = await api(`pregnancies?${params}`);
+    render();
+  }
+
+  function render() {
+    const q = document.getElementById("search").value.trim().toLowerCase();
+    const filtered = q ? all.filter((p) => p.woman_name.toLowerCase().includes(q)) : all;
+
+    const list = document.getElementById("list");
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state">No pregnancies in this view yet.</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered
+      .map((p) => {
+        const weeks = p.gestation_weeks;
+        const factors = (p.risk_factors || "").split(",").filter(Boolean).join(", ");
+        return `
+        <div class="reg-row">
+          <div class="row-top">
+            <span class="name">${p.woman_name}</span>
+            ${p.is_high_risk ? '<span class="tag risk">High risk</span>' : '<span class="tag ok">Routine</span>'}
+          </div>
+          <div class="meta">${p.village || "no village"} · Age ${p.age || "—"} · ${weeks != null ? weeks + " wks gestation" : ""}</div>
+          ${factors ? `<div class="meta">Risk factors: ${factors}</div>` : ""}
+          <div class="meta">EDD: ${fmtDate(p.edd)} · ASHA: ${p.asha_worker_name || "—"}</div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  document.querySelectorAll(".filter-bar button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-bar button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      filterMode = btn.dataset.filter;
+      load();
+    });
+  });
+
+  document.getElementById("search").addEventListener("input", render);
+
+  (async () => {
+    const me = await requireSession();
+    if (!me) return;
+
+    // Allow deep-linking with ?high_risk=1 from the dashboard quick action
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("high_risk") === "1") {
+      document.querySelector('[data-filter="high_risk"]').click();
+    } else {
+      await load();
+    }
+    renderTabbar("pregnancies");
+  })();
+</script>
+</body>
+</html>

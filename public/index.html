@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>ASHA Register — Login</title>
+<link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+<main style="padding-top: 60px;">
+  <div style="text-align:center; margin-bottom: 24px;">
+    <div style="font-size: 2rem;">🩺</div>
+    <h1 style="margin-top:8px;">ASHA Register</h1>
+    <p style="color: var(--ink-soft); margin: 0;">Newborn, high-risk pregnancy &amp; eligible couples tracking</p>
+  </div>
+
+  <form id="login-form" class="card">
+    <label for="name">Your name</label>
+    <input id="name" name="name" autocomplete="name" required />
+
+    <label for="pin">PIN</label>
+    <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" required />
+
+    <button class="primary" type="submit">Log in</button>
+  </form>
+
+  <p style="text-align:center; color: var(--ink-soft); font-size: 0.85rem;">
+    New ASHA worker? Ask the clinic to set up your PIN.
+  </p>
+</main>
+
+<script src="/js/shared.js"></script>
+<script>
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearError(e.target);
+    const name = document.getElementById("name").value.trim();
+    const pin = document.getElementById("pin").value.trim();
+    try {
+      await api("login", { method: "POST", body: { name, pin } });
+      window.location.href = "/dashboard.html";
+    } catch (err) {
+      showError(e.target, err.message);
+    }
+  });
+
+  // If already logged in, skip straight to dashboard.
+  (async () => {
+    try {
+      const res = await fetch("/api/me", { credentials: "include" });
+      if (res.ok) window.location.href = "/dashboard.html";
+    } catch {}
+  })();
+</script>
+</body>
+</html>
