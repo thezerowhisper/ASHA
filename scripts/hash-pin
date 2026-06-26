@@ -1,0 +1,15 @@
+// scripts/hash-pin.js
+// Usage: node scripts/hash-pin.js <PIN_SALT> <pin>
+// Prints the hash to paste into an INSERT INTO asha_workers statement.
+// Must match the HMAC logic in functions/_auth.js exactly.
+
+const crypto = require("crypto");
+
+const [, , salt, pin] = process.argv;
+if (!salt || !pin) {
+  console.error("Usage: node scripts/hash-pin.js <PIN_SALT> <pin>");
+  process.exit(1);
+}
+
+const hash = crypto.createHmac("sha256", salt).update(pin).digest("hex");
+console.log(hash);
